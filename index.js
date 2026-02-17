@@ -1,9 +1,22 @@
 const {
+  
   default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
   jidNormalizedUser,
   getContentType,
+  proto,
+  generateWAMessageContent,
+  generateWAMessage,
+  AnyMessageContent,
+  prepareWAMessageMedia,
+  areJidsSameUser,
+  downloadContentFromMessage,
+  MessageRetryMap,
+  generateForwardMessageContent,
+  generateWAMessageFromContent,
+  generateMessageID, makeInMemoryStore,
+  jidDecode,
   fetchLatestBaileysVersion,
   Browsers
 } = require('@whiskeysockets/baileys');
