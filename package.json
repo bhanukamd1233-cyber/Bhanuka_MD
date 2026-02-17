@@ -9,7 +9,7 @@
     "restart": "pm2 restart BHANUKA-MD"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0",
+    "@whiskeysockets/baileys": "^6.7.9",
     "api-dylux": "^1.8.5",
     "axios": "^1.13.5",
     "browser-id3-writer": "^6.3.1",
