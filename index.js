@@ -120,7 +120,8 @@ async function connectToWA() {
   });
 
   bhanuka.ev.on('creds.update', saveCreds);
-
+ mek.message = getContentType(mek.message) === 'ephemeralMessage' ? mek.message.ephemeralMessage.message : mek.message;
+    
   bhanuka.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
       if (msg.messageStubType === 68) {
@@ -131,8 +132,7 @@ async function connectToWA() {
     const mek = messages[0];
     if (!mek || !mek.message) return;
 
-    mek.message = getContentType(mek.message) === 'ephemeralMessage' ? mek.message.ephemeralMessage.message : mek.message;
-    
+   
 if (mek.key?.remoteJid === 'status@broadcast') {
   const senderJid = mek.key.participant || mek.key.remoteJid || "unknown@s.whatsapp.net";
   const mentionJid = senderJid.includes("@s.whatsapp.net") ? senderJid : senderJid + "@s.whatsapp.net";
