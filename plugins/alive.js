@@ -1,25 +1,34 @@
-const { cmd, commands } = require('../command');
-const config = require('../config');
+const { cmd } = require("../command");
+const config = require("../config");
 
-cmd({
+cmd(
+  {
     pattern: "alive",
-    desc: "Check bot online or no.",
+    desc: "Check bot online status",
     category: "main",
-    filename: __filename
-},
-async (bhanuka, mek, m, {
-    from, quoted, body, isCmd, command, args, q, isGroup,
-    sender, senderNumber, botNumber2, botNumber, pushname,
-    isMe, isOwner, groupMetadata, groupName, participants,
-    groupAdmins, isBotAdmins, isAdmins, reply
-}) => {
+    filename: __filename,
+  },
+  async (bhanuka, mek, m, { from, reply }) => {
     try {
-        return await bhanuka.sendMessage(from, {
-            image: { url: config.ALIVE_IMG },
-            caption: config.ALIVE_MSG
-        }, { quoted: mek });
-    } catch (e) {
-        console.log(e);
-        reply(`${e}`);
+      const image = config.ALIVE_IMG;
+      const message = config.ALIVE_MSG || "*🤖 BHANUKA-MD is Online!*";
+
+      // If no image, send text only
+      if (!image) {
+        return reply(message);
+      }
+
+      await bhanuka.sendMessage(
+        from,
+        {
+          image: { url: image },
+          caption: message,
+        },
+        { quoted: mek }
+      );
+    } catch (err) {
+      console.error("ALIVE CMD ERROR:", err);
+      reply("❌ Failed to send alive message.");
     }
-});
+  }
+);
