@@ -1,34 +1,20 @@
-const { cmd } = require("../command");
-const config = require("../config");
 
-cmd(
-  {
+const {readEnv} = require('../lib/database')
+const {cmd , commands} = require('../command')
+
+cmd({
     pattern: "alive",
-    desc: "Check bot online status",
+    desc: "Check bot online or no.",
     category: "main",
-    filename: __filename,
-  },
-  async (bhanuka, mek, m, { from, reply }) => {
-    try {
-      const image = config.ALIVE_IMG;
-      const message = config.ALIVE_MSG || "*🤖 BHANUKA-MD is Online!*";
-
-      // If no image, send text only
-      if (!image) {
-        return reply(message);
-      }
-
-      await bhanuka.sendMessage(
-        from,
-        {
-          image: { url: image },
-          caption: message,
-        },
-        { quoted: mek }
-      );
-    } catch (err) {
-      console.error("ALIVE CMD ERROR:", err);
-      reply("❌ Failed to send alive message.");
-    }
-  }
-);
+    filename: __filename
+},
+async(robin, mek, m,{from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply}) => {
+try{
+const config = await readEnv();
+return await robin.sendMessage(from,{image: {url: config.ALIVE_IMG},caption: config.ALIVE_MSG},{quoted: mek})
+    
+}catch(e){
+console.log(e)
+reply(`${e}`)
+}
+})
