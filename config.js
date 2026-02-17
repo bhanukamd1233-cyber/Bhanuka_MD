@@ -7,8 +7,8 @@ function convertToBool(text, fault = 'true') {
 module.exports = {
 SESSION_ID: process.env.SESSION_ID || "",
 ALIVE_IMG: process.env.ALIVE_IMG || "https://github.com/bhanukamd1233-cyber/Bhanuka_MD/blob/main/images/alive%20msg.png?raw=true",
-ALIVE_MSG: process.env.ALIVE_MSG || "*Hello👋 DANUWA-MD Is Alive Now😍*",
-BOT_OWNER: '94776121326',  // Replace with the owner's phone number
+ALIVE_MSG: process.env.ALIVE_MSG || "*Hello👋 BHANUKA-MD Is Alive Now😍*",
+BOT_OWNER: '94724258960',  // Replace with the owner's phone number
 
 
 
