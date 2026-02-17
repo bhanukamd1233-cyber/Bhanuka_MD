@@ -1,301 +1,286 @@
-
 const { cmd } = require("../command");
 const { getGroupAdmins } = require("../lib/functions");
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { downloadMediaMessage } = require("@whiskeysockets/baileys");
 
+/* ================= UTILS ================= */
 
 function getTargetUser(mek, quoted, args) {
-  if (mek.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
-    return mek.message.extendedTextMessage.contextInfo.mentionedJid[0];
-  } else if (quoted?.sender) {
-    return quoted.sender;
-  } else if (args[0]?.includes("@")) {
-    return args[0].replace("@", "") + "@s.whatsapp.net";
-  }
-  return null;
+    if (mek.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
+        return mek.message.extendedTextMessage.contextInfo.mentionedJid[0];
+    }
+    if (quoted?.sender) return quoted.sender;
+    if (args[0]) return args[0].replace(/[^0-9]/g, "") + "@s.whatsapp.net";
+    return null;
 }
 
-cmd({
-  pattern: "kick",
-  react: "👢",
-  desc: "Kick user from group",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, participants, quoted, args }) => {
-  if (!isGroup || !isAdmins) 
-    return reply("*Group only & both you and I must be admins.*");
-
-  const target = getTargetUser(mek, quoted, args);
-  if (!target) return reply("*Mention or reply to a user to kick.*");
-
-  const groupAdmins = getGroupAdmins(participants);
-  if (groupAdmins.includes(target)) 
-    return reply("*I can't kick an admin.*");
-
-  await danuwa.groupParticipantsUpdate(m.chat, [target], "remove");
-  return reply(`*Kicked:* @${target.split("@")[0]}`, { mentions: [target] });
-});
+/* ================= KICK ================= */
 
 cmd({
-  pattern: "tagall",
-  react: "📢",
-  desc: "Tag all group members",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, participants }) => {
-  if (!isGroup) return reply("*This command can only be used in groups.*");
-  if (!isAdmins) return reply("*Only group admins can use this command.*");
+    pattern: "kick",
+    react: "👢",
+    desc: "Kick user from group",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, reply, participants, quoted, args }) => {
 
-  let validParticipants = participants.filter(p => {
-    const number = p.id.split("@")[0];
-    return /^\d{9,15}$/.test(number);
-  });
+    if (!isGroup) return reply("❌ Group only command");
+    if (!isAdmins) return reply("❌ Admins only");
 
-  if (validParticipants.length === 0) {
-    return reply("*No valid phone numbers found to tag.*");
-  }
+    const target = getTargetUser(mek, quoted, args);
+    if (!target) return reply("❌ Mention or reply to a user");
 
-  let mentions = validParticipants.map(p => p.id);
+    const admins = getGroupAdmins(participants);
+    if (admins.includes(target)) return reply("❌ I can’t kick an admin");
 
-  let text = "*Attention everyone:*\n";
-
-  let displayNumbers = validParticipants.map(p => {
-    const number = p.id.split("@")[0];
-    return `@+${number}`;
-  });
-
-  text += displayNumbers.join(" ");
-
-  return reply(text, { mentions });
+    await conn.groupParticipantsUpdate(m.chat, [target], "remove");
+    reply(`✅ Kicked @${target.split("@")[0]}`, { mentions: [target] });
 });
+
+/* ================= TAGALL ================= */
 
 cmd({
-  pattern: "setpp",
-  desc: "Set group profile picture",
-  category: "group",
-  filename: __filename
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, participants, args, quoted }) => {
-  if (!isGroup) return reply("❌ This command can only be used in groups!");
-  if (!isAdmins) return reply("❌ You must be a group admin to use this command!");
+    pattern: "tagall",
+    react: "📢",
+    desc: "Tag all members",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, reply, participants }) => {
 
-  if (!quoted?.message?.imageMessage) return reply("🖼️ Please reply to an image to set as the group profile photo.");
+    if (!isGroup) return reply("❌ Group only");
+    if (!isAdmins) return reply("❌ Admins only");
 
-  try {
-    const media = await downloadMediaMessage(quoted, 'buffer');
-    await danuwa.updateProfilePicture(m.chat, media);
-    reply("✅ Group profile picture updated!");
-  } catch (e) {
-    console.error("❌ Error downloading image:", e);
-    reply("⚠️ Failed to set profile picture. Ensure the image is valid and try again.");
-  }
+    const mentions = participants.map(p => p.id);
+    const text = "*📢 Attention Everyone:*\n\n" +
+        mentions.map(j => `@${j.split("@")[0]}`).join(" ");
+
+    reply(text, { mentions });
 });
+
+/* ================= SET GROUP PP ================= */
 
 cmd({
-  pattern: "admins",
-  react: "👑",
-  desc: "List all group admins",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, reply, participants }) => {
-  if (!isGroup) return reply("*This command is for groups only.*");
+    pattern: "setpp",
+    desc: "Set group profile picture",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, reply, quoted }) => {
 
-  const admins = participants.filter(p => p.admin).map(p => `@${p.id.split("@")[0]}`).join("\n");
+    if (!isGroup) return reply("❌ Group only");
+    if (!isAdmins) return reply("❌ Admins only");
+    if (!quoted?.message?.imageMessage)
+        return reply("🖼️ Reply to an image");
 
-  return reply(`*Group Admins:*\n${admins}`, { mentions: participants.filter(p => p.admin).map(a => a.id) });
+    try {
+        const buffer = await downloadMediaMessage(
+            quoted,
+            "buffer",
+            {},
+            { logger: console }
+        );
+        await conn.updateProfilePicture(m.chat, buffer);
+        reply("✅ Group profile picture updated");
+    } catch (e) {
+        console.error(e);
+        reply("❌ Failed to update profile picture");
+    }
 });
+
+/* ================= ADMINS ================= */
+
+cmd({
+    pattern: "admins",
+    react: "👑",
+    desc: "List group admins",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, reply, participants }) => {
+
+    if (!isGroup) return reply("❌ Group only");
+
+    const admins = participants.filter(p => p.admin);
+    const text = "*👑 Group Admins:*\n\n" +
+        admins.map(a => `@${a.id.split("@")[0]}`).join("\n");
+
+    reply(text, { mentions: admins.map(a => a.id) });
+});
+
+/* ================= ADD ================= */
 
 cmd({
     pattern: "add",
     alias: ["invite"],
     react: "➕",
-    desc: "Add a user to the group.",
+    desc: "Add user to group",
     category: "group",
     filename: __filename
-},
-async (danuwa, mek, m, { from, isGroup, isAdmins, reply, args }) => {
+}, async (conn, mek, m, { isGroup, isAdmins, reply, args }) => {
+
+    if (!isGroup) return reply("❌ Group only");
+    if (!isAdmins) return reply("❌ Admins only");
+    if (!args[0]) return reply("❌ Provide phone number");
+
+    const target = args[0].replace(/[^0-9]/g, "") + "@s.whatsapp.net";
+
     try {
-        if (!isGroup) return reply("⚠️ This command can only be used in a group!");
-
-        if (!isAdmins) return reply("⚠️ Only group admins can use this command!");
-
-        if (!args[0]) return reply("⚠️ Please provide the phone number of the user to add!");
-
-        const target = args[0].includes("@") ? args[0] : `${args[0]}@s.whatsapp.net`;
-
-        await danuwa.groupParticipantsUpdate(from, [target], "add");
-
-        return reply(`✅ Successfully added: @${target.split('@')[0]}`);
+        await conn.groupParticipantsUpdate(m.chat, [target], "add");
+        reply(`✅ Added @${target.split("@")[0]}`, { mentions: [target] });
     } catch (e) {
-        console.error("Add Error:", e);
-        reply(`❌ Failed to add the user. Error: ${e.message}`);
+        console.error(e);
+        reply("❌ Failed to add user");
     }
 });
 
+/* ================= PROMOTE / DEMOTE ================= */
 
 cmd({
-  pattern: "promote",
-  react: "⬆️",
-  desc: "Promote user to admin",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
-  if (!isGroup || !isAdmins) 
-    return reply("*Group only & both you and I must be admins.*");
+    pattern: "promote",
+    react: "⬆️",
+    desc: "Promote user to admin",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
 
-  const target = getTargetUser(mek, quoted, args);
-  if (!target) return reply("*Mention or reply to a user to promote.*");
+    if (!isGroup || !isAdmins) return reply("❌ Admins only");
 
-  await danuwa.groupParticipantsUpdate(m.chat, [target], "promote");
-  return reply(`*Promoted:* @${target.split("@")[0]}`, { mentions: [target] });
+    const target = getTargetUser(mek, quoted, args);
+    if (!target) return reply("❌ Mention a user");
+
+    await conn.groupParticipantsUpdate(m.chat, [target], "promote");
+    reply(`✅ Promoted @${target.split("@")[0]}`, { mentions: [target] });
 });
 
 cmd({
-  pattern: "demote",
-  react: "⬇️",
-  desc: "Demote admin to member",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
-  if (!isGroup || !isAdmins) 
-    return reply("*Group only & both you and I must be admins.*");
+    pattern: "demote",
+    react: "⬇️",
+    desc: "Demote admin",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
 
-  const target = getTargetUser(mek, quoted, args);
-  if (!target) return reply("*Mention or reply to a user to demote.*");
+    if (!isGroup || !isAdmins) return reply("❌ Admins only");
 
-  await danuwa.groupParticipantsUpdate(m.chat, [target], "demote");
-  return reply(`*Demoted:* @${target.split("@")[0]}`, { mentions: [target] });
+    const target = getTargetUser(mek, quoted, args);
+    if (!target) return reply("❌ Mention a user");
+
+    await conn.groupParticipantsUpdate(m.chat, [target], "demote");
+    reply(`✅ Demoted @${target.split("@")[0]}`, { mentions: [target] });
 });
+
+/* ================= OPEN / CLOSE ================= */
 
 cmd({
     pattern: "open",
     alias: ["unmute"],
-    react: "⚠️",
-    desc: "Allow everyone to send messages in the group.",
+    react: "🔓",
+    desc: "Unmute group",
     category: "group",
     filename: __filename
-},
-async (danuwa, mek, m, { from, isGroup, isAdmins, reply }) => {
-    try {
-        if (!isGroup) return reply("⚠️ This command can only be used in a group!");
-        if (!isAdmins) return reply("⚠️ This command is only for group admins!");
+}, async (conn, mek, m, { isGroup, isAdmins, reply }) => {
 
-        await danuwa.groupSettingUpdate(from, "not_announcement");
-
-        return reply("✅ Group has been unmuted. Everyone can send messages now!");
-    } catch (e) {
-        console.error("Unmute Error:", e);
-        reply(`❌ Failed to unmute the group. Error: ${e.message}`);
-    }
+    if (!isGroup || !isAdmins) return reply("❌ Admins only");
+    await conn.groupSettingUpdate(m.chat, "not_announcement");
+    reply("✅ Group unmuted");
 });
 
 cmd({
     pattern: "close",
     alias: ["mute", "lock"],
-    react: "⚠️",
-    desc: "Set group chat to admin-only messages.",
+    react: "🔒",
+    desc: "Mute group",
     category: "group",
     filename: __filename
-},
-async (danuwa, mek, m, { from, isGroup, isAdmins, reply }) => {
-    try {
-        if (!isGroup) return reply("⚠️ This command can only be used in a group!");
+}, async (conn, mek, m, { isGroup, isAdmins, reply }) => {
 
-        if (!isAdmins) return reply("⚠️ This command is only for group admins!");
+    if (!isGroup || !isAdmins) return reply("❌ Admins only");
+    await conn.groupSettingUpdate(m.chat, "announcement");
+    reply("✅ Group muted");
+});
 
-        await danuwa.groupSettingUpdate(from, "announcement");
+/* ================= LINK ================= */
 
-        return reply("✅ Group has been muted. Only admins can send messages now!");
-    } catch (e) {
-        console.error("Mute Error:", e);
-        reply(`❌ Failed to mute the group. Error: ${e.message}`);
-    }
+cmd({
+    pattern: "revoke",
+    react: "♻️",
+    desc: "Reset invite link",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, reply }) => {
+
+    if (!isGroup || !isAdmins) return reply("❌ Admins only");
+    await conn.groupRevokeInvite(m.chat);
+    reply("✅ Invite link reset");
 });
 
 cmd({
-  pattern: "revoke",
-  react: "♻️",
-  desc: "Reset group invite link",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply }) => {
-  if (!isGroup || !isAdmins) 
-    return reply("*Group only & both you and I must be admins.*");
+    pattern: "grouplink",
+    alias: ["link"],
+    react: "🔗",
+    desc: "Get group invite link",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, reply }) => {
 
-  await danuwa.groupRevokeInvite(m.chat);
-  return reply("*Group invite link has been reset.*");
+    if (!isGroup) return reply("❌ Group only");
+    const code = await conn.groupInviteCode(m.chat);
+    reply(`🔗 https://chat.whatsapp.com/${code}`);
+});
+
+/* ================= SUBJECT / DESC ================= */
+
+cmd({
+    pattern: "setsubject",
+    react: "✏️",
+    desc: "Change group name",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, args, reply }) => {
+
+    if (!isGroup || !isAdmins) return reply("❌ Admins only");
+    if (!args.length) return reply("❌ Provide group name");
+
+    await conn.groupUpdateSubject(m.chat, args.join(" "));
+    reply("✅ Group name updated");
 });
 
 cmd({
-  pattern: "grouplink",
-  alias: ["link"],
-  react: "🔗",
-  desc: "Get current invite link",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, reply }) => {
-  if (!isGroup) 
-    return reply("*Group only & I must be an admin.*");
+    pattern: "setdesc",
+    react: "📝",
+    desc: "Change group description",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins, args, reply }) => {
 
-  const code = await danuwa.groupInviteCode(m.chat);
-  return reply(`*Group Link:*\nhttps://chat.whatsapp.com/${code}`);
+    if (!isGroup || !isAdmins) return reply("❌ Admins only");
+    if (!args.length) return reply("❌ Provide description");
+
+    await conn.groupUpdateDescription(m.chat, args.join(" "));
+    reply("✅ Group description updated");
 });
+
+/* ================= GROUP INFO ================= */
 
 cmd({
-  pattern: "setsubject",
-  react: "✏️",
-  desc: "Change group name",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, args, reply }) => {
-  if (!isGroup || !isAdmins) 
-    return reply("*Group only & both you and I must be admins.*");
+    pattern: "groupinfo",
+    alias: ["ginfo"],
+    react: "📄",
+    desc: "Show group info",
+    category: "group",
+    filename: __filename
+}, async (conn, mek, m, { isGroup, reply }) => {
 
-  if (!args[0]) return reply("*Give a new group name.*");
+    if (!isGroup) return reply("❌ Group only");
 
-  await danuwa.groupUpdateSubject(m.chat, args.join(" "));
-  return reply("*Group name updated.*");
+    const meta = await conn.groupMetadata(m.chat);
+    const admins = meta.participants.filter(p => p.admin);
+    const owner = meta.owner || admins.find(a => a.admin === "superadmin")?.id;
+
+    const text =
+        `👥 *${meta.subject}*\n\n` +
+        `🆔 ${meta.id}\n` +
+        `👤 Members: ${meta.participants.length}\n` +
+        `🛡️ Admins: ${admins.length}\n` +
+        `📅 Created: ${new Date(meta.creation * 1000).toLocaleString()}\n\n` +
+        `📝 ${meta.desc || "No description"}`;
+
+    reply(text, { mentions: owner ? [owner] : [] });
 });
-
-cmd({
-  pattern: "setdesc",
-  react: "📝",
-  desc: "Change group description",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, args, reply }) => {
-  if (!isGroup || !isAdmins) 
-    return reply("*Group only & both you and I must be admins.*");
-
-  if (!args[0]) return reply("*Give a new group description.*");
-
-  await danuwa.groupUpdateDescription(m.chat, args.join(" "));
-  return reply("*Group description updated.*");
-});
-
-cmd({
-  pattern: "groupinfo",
-  alias: ["ginfo"],
-  react: "📄",
-  desc: "Show group details",
-  category: "group",
-  filename: __filename,
-}, async (danuwa, mek, m, { isGroup, reply }) => {
-  if (!isGroup) return reply("*This command is for groups only.*");
-
-  const metadata = await danuwa.groupMetadata(m.chat);
-  const adminsCount = metadata.participants.filter(p => p.admin).length;
-  const creation = new Date(metadata.creation * 1000).toLocaleString();
-  const owner = metadata.owner || metadata.participants.find(p => p.admin === 'superadmin')?.id;
-  const desc = metadata.desc || "No description.";
-
-  let txt = `*👥 Group:* ${metadata.subject}\n`;
-  txt += `*🆔 ID:* ${metadata.id}\n`;
-  txt += `*🧑‍💼 Owner:* ${owner ? `@${owner.split("@")[0]}` : "Not found"}\n`;
-  txt += `*📅 Created:* ${creation}\n`;
-  txt += `*👤 Members:* ${metadata.participants.length}\n`;
-  txt += `*🛡️ Admins:* ${adminsCount}\n`;
-  txt += `*📝 Description:*\n${desc}`;
-
-  return reply(txt, { mentions: owner ? [owner] : [] });
-});
-
