@@ -32,6 +32,7 @@
     "tmp": "^0.2.5",
     "util": "^0.12.5",
     "vm": "^0.1.0",
-    "@xaviabot/fb-downloader": "^1.0.14"
+    "@xaviabot/fb-downloader": "^1.0.14",
+    "@vreden/youtube_scraper": "^1.2.8"  
   }
 }
