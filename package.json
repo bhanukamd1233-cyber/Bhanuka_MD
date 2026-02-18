@@ -1,12 +1,12 @@
 {
-  "name": "DANUWA-MD",
+  "name": "BHANUKA-MD",
   "version": "1.0.0",
   "description": "A Powerfull Whatsapp Bot",
   "main": "index.js",
   "scripts": {
     "start": "pm2 start index.js --deep-monitoring --attach --name DANUWA-MD",
-    "stop": "pm2 stop DANUWA-MD",
-    "restart": "pm2 restart DANUWA-MD"
+    "stop": "pm2 stop BHANUKA-MD",
+    "restart": "pm2 restart BHANUKA-MD"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.16",
